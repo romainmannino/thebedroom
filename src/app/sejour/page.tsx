@@ -6,6 +6,8 @@ import {
   KeyRound,
 } from "lucide-react";
 import Link from "next/link";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { DEFAULT_HOME_CONFIGURATION } from "@/lib/guide-home-config";
 
 type StayPageProps = {
   searchParams: Promise<{
@@ -27,10 +29,36 @@ function formatDate(value?: string) {
   }).format(new Date(`${value}T12:00:00`));
 }
 
+async function getHeroImage() {
+  try {
+    const { data: property } = await supabaseAdmin
+      .from("properties")
+      .select("id")
+      .eq("slug", "the-bedroom")
+      .single();
+
+    if (!property) return DEFAULT_HOME_CONFIGURATION.heroImage;
+
+    const { data } = await supabaseAdmin
+      .from("guide_home_settings")
+      .select("configuration")
+      .eq("property_id", property.id)
+      .maybeSingle();
+
+    return (
+      data?.configuration?.heroImage ||
+      DEFAULT_HOME_CONFIGURATION.heroImage
+    );
+  } catch {
+    return DEFAULT_HOME_CONFIGURATION.heroImage;
+  }
+}
+
 export default async function StayPage({
   searchParams,
 }: StayPageProps) {
   const params = await searchParams;
+  const heroImage = await getHeroImage();
 
   const guestName = params.prenom?.trim() || "Bienvenue";
   const arrivalTime = params.heure || "15:00";
@@ -40,31 +68,31 @@ export default async function StayPage({
     <main className="min-h-screen bg-[#e7dfd4]">
       <div className="mx-auto min-h-screen max-w-[720px] bg-[#faf8f4]">
         <section className="relative min-h-[390px] overflow-hidden bg-black p-6 text-white sm:p-9">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(238,227,211,0.25),transparent_45%)]" />
+          <img
+            src={heroImage}
+            alt="The Bedroom"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/85" />
 
           <div className="relative">
-            <p className="text-[10px] font-black tracking-[0.25em] text-white/50">
+            <p className="text-[10px] font-black tracking-[0.25em] text-white/70">
               THE BEDROOM
             </p>
 
-            <div className="mt-24">
-              <p className="font-serif text-4xl italic">
+            <div className="mt-40">
+              <p className="font-serif text-4xl italic sm:text-5xl">
                 Bonjour {guestName}
               </p>
 
-              <h1 className="mt-2 text-5xl font-black leading-[0.9] tracking-[-0.055em]">
-                VOTRE SÉJOUR
-              </h1>
-
-              <p className="mt-5 max-w-md text-sm leading-relaxed text-white/60">
-                Retrouvez ici les informations essentielles avant
-                votre arrivée.
+              <p className="mt-5 max-w-md text-sm leading-relaxed text-white/75">
+                Retrouvez ici les informations essentielles avant votre arrivée.
               </p>
             </div>
           </div>
         </section>
 
-        <section className="-mt-7 rounded-t-[30px] bg-[#faf8f4] px-4 pb-12 pt-7 sm:px-8">
+        <section className="relative z-10 -mt-7 rounded-t-[30px] bg-[#faf8f4] px-4 pb-12 pt-7 sm:px-8">
           <div className="grid gap-3">
             <InfoCard
               icon={CalendarDays}
@@ -97,13 +125,10 @@ export default async function StayPage({
               </span>
 
               <div>
-                <h2 className="font-black">
-                  Votre livret est prêt
-                </h2>
-
+                <h2 className="font-black">Votre livret est prêt</h2>
                 <p className="mt-1 text-sm leading-relaxed text-black/55">
-                  Accédez aux informations du logement, au Wi-Fi,
-                  aux bonnes adresses et aux activités.
+                  Accédez aux informations du logement, au Wi-Fi, aux bonnes
+                  adresses, aux transports et aux numéros utiles.
                 </p>
               </div>
             </div>
@@ -155,10 +180,7 @@ function InfoCard({
         >
           {label}
         </p>
-
-        <p className="mt-1 text-sm font-black">
-          {value}
-        </p>
+        <p className="mt-1 text-sm font-black">{value}</p>
       </div>
     </article>
   );
