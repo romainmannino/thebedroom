@@ -16,6 +16,7 @@ export type GuideHomeConfiguration = {
   heroTitle: string;
   heroSubtitle: string;
   heroHeight: "small" | "normal" | "large";
+  whatsappPhone: string;
   tiles: HomeTileConfiguration[];
 };
 
@@ -29,6 +30,7 @@ export const DEFAULT_HOME_CONFIGURATION: GuideHomeConfiguration = {
   heroSubtitle:
     "Toutes les informations utiles pour profiter de votre séjour.",
   heroHeight: "normal",
+  whatsappPhone: "33627630932",
   tiles: [
     { id: "arrival", title: "Arrivée & départ", subtitle: "Horaires et accès", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=85", visible: true, size: "normal", position: 0 },
     { id: "wifi", title: "Wi-Fi", subtitle: "Se connecter", image: "", visible: true, size: "normal", position: 1 },
