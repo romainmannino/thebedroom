@@ -31,6 +31,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_HOME_CONFIGURATION,
+  HOME_CONFIG_STORAGE_KEY,
   type GuideHomeConfiguration,
 } from "@/lib/guide-home-config";
 
@@ -226,37 +227,38 @@ export default function HomePage() {
     useState<GuideHomeConfiguration>(DEFAULT_HOME_CONFIGURATION);
 
   useEffect(() => {
-    async function loadAppearance() {
-      try {
-        const response = await fetch("/api/appearance", {
-          cache: "no-store",
-        });
+    function loadAppearance() {
+      const storedConfiguration = localStorage.getItem(
+        HOME_CONFIG_STORAGE_KEY,
+      );
 
-        const result = await response.json();
-
-        if (
-          response.ok &&
-          result.success &&
-          result.configuration
-        ) {
-          setHomeConfiguration(result.configuration);
-          return;
-        }
-
-        console.error(
-          result.error ?? "Impossible de charger l’apparence.",
-        );
-      } catch (error) {
-        console.error(
-          "Impossible de charger l’apparence :",
-          error,
-        );
+      if (!storedConfiguration) {
+        setHomeConfiguration(DEFAULT_HOME_CONFIGURATION);
+        return;
       }
 
-      setHomeConfiguration(DEFAULT_HOME_CONFIGURATION);
+      try {
+        setHomeConfiguration(
+          JSON.parse(storedConfiguration) as GuideHomeConfiguration,
+        );
+      } catch {
+        setHomeConfiguration(DEFAULT_HOME_CONFIGURATION);
+      }
     }
 
     loadAppearance();
+
+    window.addEventListener(
+      "the-bedroom-home-updated",
+      loadAppearance,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "the-bedroom-home-updated",
+        loadAppearance,
+      );
+    };
   }, []);
 
   const displayedTiles = useMemo(() => {

@@ -30,48 +30,21 @@ export default function AppearancePage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    async function loadConfiguration() {
-      try {
-        const response = await fetch("/api/appearance", {
-          cache: "no-store",
-        });
+    const storedConfiguration = localStorage.getItem(
+      HOME_CONFIG_STORAGE_KEY,
+    );
 
-        const result = await response.json();
-
-        if (
-          response.ok &&
-          result.success &&
-          result.configuration
-        ) {
-          setConfiguration(result.configuration);
-          return;
-        }
-
-        throw new Error(
-          result.error ?? "Impossible de charger l’apparence.",
-        );
-      } catch (error) {
-        console.error(error);
-
-        const storedConfiguration = localStorage.getItem(
-          HOME_CONFIG_STORAGE_KEY,
-        );
-
-        if (!storedConfiguration) {
-          return;
-        }
-
-        try {
-          setConfiguration(
-            JSON.parse(storedConfiguration) as GuideHomeConfiguration,
-          );
-        } catch {
-          localStorage.removeItem(HOME_CONFIG_STORAGE_KEY);
-        }
-      }
+    if (!storedConfiguration) {
+      return;
     }
 
-    loadConfiguration();
+    try {
+      setConfiguration(
+        JSON.parse(storedConfiguration) as GuideHomeConfiguration,
+      );
+    } catch {
+      localStorage.removeItem(HOME_CONFIG_STORAGE_KEY);
+    }
   }, []);
 
   function updateTile(
@@ -128,7 +101,7 @@ export default function AppearancePage() {
     });
   }
 
-  async function handleImageFile(
+  function handleImageFile(
     file: File | undefined,
     target: "hero" | string,
   ) {
@@ -136,81 +109,41 @@ export default function AppearancePage() {
       return;
     }
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    const reader = new FileReader();
 
-      const response = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.error ?? "Impossible d’importer la photo.",
-        );
-      }
+    reader.onload = () => {
+      const image = String(reader.result ?? "");
 
       if (target === "hero") {
         setConfiguration((current) => ({
           ...current,
-          heroImage: result.url,
+          heroImage: image,
         }));
 
         return;
       }
 
       updateTile(target, {
-        image: result.url,
+        image,
       });
-    } catch (error) {
-      window.alert(
-        error instanceof Error
-          ? error.message
-          : "Impossible d’importer la photo.",
-      );
-    }
+    };
+
+    reader.readAsDataURL(file);
   }
 
-  async function saveConfiguration() {
-    try {
-      const response = await fetch("/api/appearance", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          configuration,
-        }),
-      });
+  function saveConfiguration() {
+    localStorage.setItem(
+      HOME_CONFIG_STORAGE_KEY,
+      JSON.stringify(configuration),
+    );
 
-      const result = await response.json();
+    window.dispatchEvent(new Event("the-bedroom-home-updated"));
 
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.error ?? "Impossible d’enregistrer l’apparence.",
-        );
-      }
+    setSaved(true);
 
-      localStorage.setItem(
-        HOME_CONFIG_STORAGE_KEY,
-        JSON.stringify(configuration),
-      );
-
-      setSaved(true);
-
-      window.setTimeout(() => {
-        setSaved(false);
-      }, 1800);
-    } catch (error) {
-      window.alert(
-        error instanceof Error
-          ? error.message
-          : "Impossible d’enregistrer l’apparence.",
-      );
-    }
+    window.setTimeout(() => {
+      setSaved(false);
+    }, 1800);
   }
 
   function resetConfiguration() {
