@@ -4,6 +4,12 @@ import { useEffect } from "react";
 
 export function ContactLinkEnhancer() {
   useEffect(() => {
+    const isPublicGuide = window.location.pathname === "/";
+
+    if (isPublicGuide) {
+      document.body.classList.add("public-guide-page");
+    }
+
     function handleClick(event: MouseEvent) {
       const target = event.target as HTMLElement | null;
       const anchor = target?.closest("a");
@@ -19,7 +25,11 @@ export function ContactLinkEnhancer() {
     }
 
     document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
+
+    return () => {
+      document.removeEventListener("click", handleClick);
+      document.body.classList.remove("public-guide-page");
+    };
   }, []);
 
   return null;
