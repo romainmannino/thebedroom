@@ -1,3 +1,10 @@
+export type GuideContentMedia = {
+  id: string;
+  type: "image" | "video" | "pdf";
+  url: string;
+  name: string;
+};
+
 export type GuideContentBlock = {
   id: string;
   title: string;
@@ -6,6 +13,7 @@ export type GuideContentBlock = {
   copyValue?: string;
   mapQuery?: string;
   phone?: string;
+  media?: GuideContentMedia[];
 };
 
 export type GuideContentSection = {
@@ -20,42 +28,21 @@ export type GuideContentConfiguration = Record<string, GuideContentSection>;
 
 export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
   arrival: {
-    id: "arrival",
-    script: "Les horaires",
-    title: "ARRIVÉE & DÉPART",
-    description: "Horaires, accès autonome et consignes de départ.",
+    id: "arrival", script: "Les horaires", title: "ARRIVÉE & DÉPART", description: "Horaires, accès autonome et consignes de départ.",
     blocks: [
-      {
-        id: "arrival-time",
-        title: "Votre arrivée",
-        badge: "À PARTIR DE 15 H",
-        content:
-          "L’arrivée est autonome grâce à la boîte à clés. Vous pouvez arriver à l’heure qui vous convient à partir de 15 h.",
-      },
-      {
-        id: "departure-time",
-        title: "Votre départ",
-        badge: "AVANT 10 H",
-        content:
-          "Éteignez les lumières, sortez les poubelles, faites la vaisselle, videz le réfrigérateur, déposez le linge utilisé au sol, fermez portes et fenêtres puis remettez les clés dans la boîte.",
-      },
+      { id: "arrival-time", title: "Votre arrivée", badge: "À PARTIR DE 15 H", content: "L’arrivée est autonome grâce à la boîte à clés. Vous pouvez arriver à l’heure qui vous convient à partir de 15 h." },
+      { id: "departure-time", title: "Votre départ", badge: "AVANT 10 H", content: "Éteignez les lumières, sortez les poubelles, faites la vaisselle, videz le réfrigérateur, déposez le linge utilisé au sol, fermez portes et fenêtres puis remettez les clés dans la boîte." },
     ],
   },
   wifi: {
-    id: "wifi",
-    script: "Connexion",
-    title: "LE WI-FI",
-    description: "Réseau et mot de passe du logement.",
+    id: "wifi", script: "Connexion", title: "LE WI-FI", description: "Réseau et mot de passe du logement.",
     blocks: [
       { id: "wifi-network", title: "Réseau", content: "LIVEBOX-5DD0", copyValue: "LIVEBOX-5DD0" },
       { id: "wifi-password", title: "Mot de passe", content: "THEROOM69330", copyValue: "THEROOM69330" },
     ],
   },
   know: {
-    id: "know",
-    script: "Bon",
-    title: "À SAVOIR",
-    description: "Équipements et informations utiles dans le logement.",
+    id: "know", script: "Bon", title: "À SAVOIR", description: "Équipements et informations utiles dans le logement.",
     blocks: [
       { id: "tv", title: "Télévision", content: "Les chaînes de la TNT sont accessibles depuis l’application Molotov TV sur l’écran d’accueil." },
       { id: "climate", title: "Chauffage et climatisation", content: "La température est préréglée. Une télécommande permet de l’adapter à votre convenance." },
@@ -66,10 +53,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   rules: {
-    id: "rules",
-    script: "Quelques",
-    title: "RÈGLES",
-    description: "Les règles essentielles à respecter pendant le séjour.",
+    id: "rules", script: "Quelques", title: "RÈGLES", description: "Les règles essentielles à respecter pendant le séjour.",
     blocks: [
       { id: "respect", title: "Respect des lieux", content: "Prenez soin du logement et de ses extérieurs." },
       { id: "animals", title: "Animaux", content: "Les animaux ne sont pas acceptés." },
@@ -80,10 +64,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   linen: {
-    id: "linen",
-    script: "Le",
-    title: "LINGE & ÉQUIPEMENTS",
-    description: "Salle de bain, literie et équipements utiles.",
+    id: "linen", script: "Le", title: "LINGE & ÉQUIPEMENTS", description: "Salle de bain, literie et équipements utiles.",
     blocks: [
       { id: "towels", title: "Serviettes", content: "Elles sont rangées dans le placard sous la vasque. Déposez les serviettes utilisées au sol dans la salle de bain avant votre départ." },
       { id: "bed-linen", title: "Linge de lit", content: "Les lits sont préparés avant votre arrivée. Déposez les draps utilisés au sol dans la salle de bain." },
@@ -92,10 +73,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   restaurants: {
-    id: "restaurants",
-    script: "À proximité",
-    title: "RESTAURANTS",
-    description: "Nos bonnes adresses autour du logement.",
+    id: "restaurants", script: "À proximité", title: "RESTAURANTS", description: "Nos bonnes adresses autour du logement.",
     blocks: [
       { id: "grillesia", title: "Le Grillesia · 100 m", content: "Cuisine créative et traditionnelle, viandes maturées et plats traditionnels.", mapQuery: "Le Grillesia Jonage" },
       { id: "saisons", title: "Le Temps des Saisons · 300 m", content: "Cuisine du marché réalisée avec des produits frais et locaux.", mapQuery: "Le Temps des Saisons Jonage" },
@@ -104,10 +82,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   activities: {
-    id: "activities",
-    script: "À faire, à voir",
-    title: "VISITES",
-    description: "Activités et lieux à découvrir autour de Jonage.",
+    id: "activities", script: "À faire, à voir", title: "VISITES", description: "Activités et lieux à découvrir autour de Jonage.",
     blocks: [
       { id: "miribel", title: "Grand Parc Miribel-Jonage · 16 km", content: "Nature, baignade, sports nautiques, promenades, spectacles et détente.", mapQuery: "Grand Parc Miribel Jonage" },
       { id: "tete-or", title: "Parc de la Tête-d’Or · 20 km", content: "Grand parc lyonnais avec espaces verts, zoo, lac, manèges et activités.", mapQuery: "Parc de la Tête d'Or Lyon" },
@@ -118,20 +93,14 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   shops: {
-    id: "shops",
-    script: "Les",
-    title: "COMMERCES",
-    description: "Les commerces utiles à proximité.",
+    id: "shops", script: "Les", title: "COMMERCES", description: "Les commerces utiles à proximité.",
     blocks: [
       { id: "groceries", title: "Courses à proximité", content: "Carrefour Market et Lidl permettent de faire les courses à quelques minutes du logement.", mapQuery: "Carrefour Market Jonage" },
       { id: "center", title: "Centre de Jonage", content: "Vous trouverez également les commerces du centre de Jonage à proximité.", mapQuery: "Jonage centre" },
     ],
   },
   malls: {
-    id: "malls",
-    script: "Les centres",
-    title: "COMMERCIAUX",
-    description: "Shopping, gastronomie et loisirs.",
+    id: "malls", script: "Les centres", title: "COMMERCIAUX", description: "Shopping, gastronomie et loisirs.",
     blocks: [
       { id: "bocuse", title: "Halles Paul Bocuse · 15 km", content: "Lieu incontournable pour découvrir et déguster la gastronomie lyonnaise.", mapQuery: "Halles Paul Bocuse Lyon" },
       { id: "part-dieu", title: "Westfield La Part-Dieu · 22 km", content: "L’un des plus grands centres commerciaux d’Europe, avec boutiques et restaurants.", mapQuery: "Westfield La Part-Dieu" },
@@ -140,10 +109,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   interests: {
-    id: "interests",
-    script: "Centres d’intérêt",
-    title: "À PROXIMITÉ",
-    description: "Les grands sites proches du logement.",
+    id: "interests", script: "Centres d’intérêt", title: "À PROXIMITÉ", description: "Les grands sites proches du logement.",
     blocks: [
       { id: "airport", title: "Aéroport Lyon-Saint-Exupéry · 13,5 km", content: "L’aéroport international de Lyon, situé à Colombier-Saugnieu.", mapQuery: "Aéroport Lyon Saint Exupéry" },
       { id: "eurexpo", title: "Eurexpo Lyon · 19 km", content: "Parc d’exposition accueillant salons, congrès et grands événements.", mapQuery: "Eurexpo Lyon" },
@@ -152,10 +118,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   transport: {
-    id: "transport",
-    script: "Transports en commun",
-    title: "INFORMATIONS",
-    description: "Bus, tramway et déplacements depuis Jonage.",
+    id: "transport", script: "Transports en commun", title: "INFORMATIONS", description: "Bus, tramway et déplacements depuis Jonage.",
     blocks: [
       { id: "bus85", title: "Ligne de bus 85", content: "Consultez les horaires TCL pour les arrêts et correspondances depuis Jonage." },
       { id: "bus95", title: "Ligne de bus 95", content: "Ligne desservant le secteur de Jonage et les communes voisines." },
@@ -164,10 +127,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   emergencies: {
-    id: "emergencies",
-    script: "Numéros",
-    title: "URGENCES",
-    description: "Numéros utiles, hôpitaux et pharmacies.",
+    id: "emergencies", script: "Numéros", title: "URGENCES", description: "Numéros utiles, hôpitaux et pharmacies.",
     blocks: [
       { id: "112", title: "Urgences · 112", content: "Numéro d’urgence européen.", phone: "112" },
       { id: "15", title: "SAMU · 15", content: "Urgence médicale.", phone: "15" },
@@ -185,12 +145,7 @@ export function mergeGuideContent(value: unknown): GuideContentConfiguration {
   return Object.fromEntries(
     Object.entries(DEFAULT_GUIDE_CONTENT).map(([key, section]) => {
       const current = incoming[key];
-      return [
-        key,
-        current && Array.isArray(current.blocks)
-          ? { ...section, ...current, blocks: current.blocks }
-          : section,
-      ];
+      return [key, current && Array.isArray(current.blocks) ? { ...section, ...current, blocks: current.blocks } : section];
     }),
   );
 }
