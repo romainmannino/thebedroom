@@ -55,7 +55,7 @@ export default function AdminGuidePage() {
         <section className="p-4 sm:p-7">
           <div className="rounded-[28px] bg-black p-6 text-white sm:p-8">
             <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-full bg-white text-black"><BookOpen size={22} /></span><div><p className="font-serif text-2xl italic">Votre livret</p><h2 className="text-3xl font-black tracking-[-0.05em] sm:text-4xl">MODIFIER LE CONTENU</h2></div></div>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/60">Chaque carte ouvre exactement le contenu affiché derrière la même vignette dans le livret voyageur. Après enregistrement, la modification est publiée immédiatement.</p>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/60">Chaque carte ouvre exactement le contenu affiché derrière la même vignette dans le livret voyageur. Vous pouvez aussi ajouter des photos, vidéos et PDF dans chaque bloc.</p>
           </div>
 
           <section className="mt-8">
@@ -63,10 +63,10 @@ export default function AdminGuidePage() {
             <h3 className="text-2xl font-black tracking-[-0.04em]">RUBRIQUES DU LIVRET</h3>
             <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
               {sections.map(([slug, title, subtitle, Icon], index) => (
-                <Link key={slug} href={`/admin/${slug}`} className={`group flex min-h-[165px] flex-col rounded-[24px] p-4 transition hover:-translate-y-1 hover:shadow-lg ${index === 0 ? "bg-black text-white" : "bg-[#eee3d3] text-black"}`}>
+                <a key={slug} href={`/admin/${slug}`} className={`group flex min-h-[165px] flex-col rounded-[24px] p-4 transition hover:-translate-y-1 hover:shadow-lg ${index === 0 ? "bg-black text-white" : "bg-[#eee3d3] text-black"}`}>
                   <span className={`grid h-11 w-11 place-items-center rounded-full ${index === 0 ? "bg-white text-black" : "bg-white"}`}><Icon size={20} /></span>
                   <div className="mt-auto"><h4 className="font-black leading-tight">{title}</h4><p className={`mt-1 text-xs leading-relaxed ${index === 0 ? "text-white/55" : "text-black/45"}`}>{subtitle}</p><span className="mt-3 inline-block text-[10px] font-black uppercase tracking-[0.12em] opacity-45 group-hover:opacity-100">Modifier →</span></div>
-                </Link>
+                </a>
               ))}
             </div>
           </section>
