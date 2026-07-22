@@ -9,6 +9,7 @@ import {
   Info,
   KeyRound,
   MapPin,
+  Palette,
   Settings,
   Sparkles,
   Utensils,
@@ -456,6 +457,13 @@ export default function AdminPage() {
                   icon={MapPin}
                   title="Activités"
                   subtitle="À découvrir"
+                />
+
+                <QuickLink
+                  href="/admin/apparence"
+                  icon={Palette}
+                  title="Apparence"
+                  subtitle="Photos et vignettes"
                 />
 
                 <QuickLink

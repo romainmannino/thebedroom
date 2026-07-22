@@ -28,7 +28,12 @@ import {
   Wifi,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  DEFAULT_HOME_CONFIGURATION,
+  HOME_CONFIG_STORAGE_KEY,
+  type GuideHomeConfiguration,
+} from "@/lib/guide-home-config";
 
 type GuideSection =
   | "arrival"
@@ -218,6 +223,76 @@ function goToMaps(search: string) {
 export default function HomePage() {
   const [activeSection, setActiveSection] = useState<GuideSection | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [homeConfiguration, setHomeConfiguration] =
+    useState<GuideHomeConfiguration>(DEFAULT_HOME_CONFIGURATION);
+
+  useEffect(() => {
+    function loadAppearance() {
+      const storedConfiguration = localStorage.getItem(
+        HOME_CONFIG_STORAGE_KEY,
+      );
+
+      if (!storedConfiguration) {
+        setHomeConfiguration(DEFAULT_HOME_CONFIGURATION);
+        return;
+      }
+
+      try {
+        setHomeConfiguration(
+          JSON.parse(storedConfiguration) as GuideHomeConfiguration,
+        );
+      } catch {
+        setHomeConfiguration(DEFAULT_HOME_CONFIGURATION);
+      }
+    }
+
+    loadAppearance();
+
+    window.addEventListener(
+      "the-bedroom-home-updated",
+      loadAppearance,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "the-bedroom-home-updated",
+        loadAppearance,
+      );
+    };
+  }, []);
+
+  const displayedTiles = useMemo(() => {
+    const configurations = [...homeConfiguration.tiles]
+      .filter((tile) => tile.visible)
+      .sort(
+        (firstTile, secondTile) =>
+          firstTile.position - secondTile.position,
+      );
+
+    return configurations
+      .map((configuration) => {
+        const originalTile = tiles.find(
+          (tile) => tile.id === configuration.id,
+        );
+
+        if (!originalTile) {
+          return null;
+        }
+
+        return {
+          ...originalTile,
+          title: configuration.title,
+          subtitle: configuration.subtitle,
+          image: configuration.image || undefined,
+          size: configuration.size,
+        };
+      })
+      .filter(Boolean) as Array<
+        Tile & {
+          size: "normal" | "large" | "full";
+        }
+      >;
+  }, [homeConfiguration]);
 
   async function copyText(label: string, value: string) {
     await navigator.clipboard.writeText(value);
@@ -230,13 +305,10 @@ export default function HomePage() {
       <div className="relative mx-auto min-h-screen w-full max-w-[860px] overflow-hidden bg-[#fbf9f5] shadow-2xl">
         <section className="relative h-[46vh] min-h-[390px] max-h-[590px] overflow-hidden">
           <img
-            src="/bedroom-cover.jpg"
+            src={homeConfiguration.heroImage}
             alt="The Bedroom"
             className="absolute inset-0 h-full w-full object-cover"
-            onError={(event) => {
-              event.currentTarget.src =
-                "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1400&q=88";
-            }}
+            
           />
 
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/80" />
@@ -258,15 +330,15 @@ export default function HomePage() {
 
           <div className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-10">
             <p className="mb-1 font-serif text-4xl italic sm:text-5xl">
-              Bonjour !
+              {homeConfiguration.greeting}
             </p>
 
             <h1 className="max-w-lg text-4xl font-black leading-[0.92] tracking-[-0.05em] sm:text-6xl">
-              BIENVENUE CHEZ NOUS
+              {homeConfiguration.heroTitle}
             </h1>
 
             <p className="mt-3 max-w-md text-sm text-white/80">
-              Toutes les informations utiles pour profiter de votre séjour.
+              {homeConfiguration.heroSubtitle}
             </p>
           </div>
         </section>
@@ -296,7 +368,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {tiles.map((tile) => {
+            {displayedTiles.map((tile) => {
               const Icon = tile.icon;
 
               return (
@@ -305,6 +377,12 @@ export default function HomePage() {
                   type="button"
                   onClick={() => setActiveSection(tile.id)}
                   className={`relative min-h-[150px] overflow-hidden rounded-[25px] text-left transition active:scale-[0.98] ${
+                    tile.size === "full"
+                      ? "col-span-2 sm:col-span-3"
+                      : tile.size === "large"
+                        ? "col-span-2"
+                        : "col-span-1"
+                  } ${
                     tile.image
                       ? "text-white"
                       : tile.accent
