@@ -31,12 +31,11 @@ function formatDate(date: Date): string {
 
 function normalizeTitle(summary?: string): string {
   const value = summary?.trim();
+  return value || "Réservation";
+}
 
-  if (!value) {
-    return "Réservation";
-  }
-
-  return value;
+function escapeUid(uid: string): string {
+  return `"${uid.replaceAll('"', '\\"')}"`;
 }
 
 export async function POST() {
@@ -70,7 +69,6 @@ export async function POST() {
 
         const calendarText = await response.text();
         const parsedCalendar = ical.parseICS(calendarText);
-
         const seenExternalUids: string[] = [];
         let importedCount = 0;
 
@@ -114,6 +112,7 @@ export async function POST() {
                 },
                 imported_at: synchronizationDate,
                 last_seen_at: synchronizationDate,
+                updated_at: synchronizationDate,
               },
               {
                 onConflict: "calendar_source_id,external_uid",
@@ -129,23 +128,27 @@ export async function POST() {
           importedCount += 1;
         }
 
-        if (seenExternalUids.length > 0) {
-          const { error: cancelledError } = await supabaseAdmin
-            .from("reservations")
-            .update({
-              status: "cancelled",
-              updated_at: synchronizationDate,
-            })
-            .eq("calendar_source_id", source.id)
-            .not("external_uid", "in", `(${seenExternalUids.map((uid) => `"${uid.replaceAll('"', '\\"')}"`).join(",")})`)
-            .neq("status", "completed");
+        let cancelledQuery = supabaseAdmin
+          .from("reservations")
+          .update({
+            status: "cancelled",
+            updated_at: synchronizationDate,
+          })
+          .eq("calendar_source_id", source.id)
+          .neq("status", "completed")
+          .neq("status", "cancelled");
 
-          if (cancelledError) {
-            console.error(
-              `Impossible de marquer les anciennes réservations comme annulées pour ${source.name}:`,
-              cancelledError.message,
-            );
-          }
+        if (seenExternalUids.length > 0) {
+          const uidList = seenExternalUids.map(escapeUid).join(",");
+          cancelledQuery = cancelledQuery.not("external_uid", "in", `(${uidList})`);
+        }
+
+        const { error: cancelledError } = await cancelledQuery;
+
+        if (cancelledError) {
+          throw new Error(
+            `Impossible de mettre à jour les annulations : ${cancelledError.message}`,
+          );
         }
 
         const { error: sourceUpdateError } = await supabaseAdmin
