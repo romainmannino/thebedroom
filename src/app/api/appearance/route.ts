@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   DEFAULT_HOME_CONFIGURATION,
-  GuideHomeConfiguration,
+  type GuideHomeConfiguration,
+  type HomeTileConfiguration,
 } from "@/lib/guide-home-config";
 
 export const dynamic = "force-dynamic";
@@ -31,15 +32,47 @@ async function getProperty() {
 
 function mustRestoreConfiguration(configuration: unknown): boolean {
   if (!configuration || typeof configuration !== "object") return true;
-
   const current = configuration as Partial<GuideHomeConfiguration>;
-
   return (
     current.heroTitle === "TEST" ||
     current.heroSubtitle === "Test" ||
     !Array.isArray(current.tiles) ||
     current.tiles.length === 0
   );
+}
+
+function mergeWithDefaults(
+  configuration: GuideHomeConfiguration,
+): GuideHomeConfiguration {
+  const currentTiles = Array.isArray(configuration.tiles)
+    ? configuration.tiles
+    : [];
+
+  const currentById = new Map(
+    currentTiles.map((tile: HomeTileConfiguration) => [tile.id, tile]),
+  );
+
+  const mergedTiles = DEFAULT_HOME_CONFIGURATION.tiles.map((defaultTile) => ({
+    ...defaultTile,
+    ...currentById.get(defaultTile.id),
+  }));
+
+  const unknownTiles = currentTiles.filter(
+    (tile) =>
+      !DEFAULT_HOME_CONFIGURATION.tiles.some(
+        (defaultTile) => defaultTile.id === tile.id,
+      ),
+  );
+
+  return {
+    ...DEFAULT_HOME_CONFIGURATION,
+    ...configuration,
+    tiles: [...mergedTiles, ...unknownTiles].map((tile, index) => ({
+      ...tile,
+      position:
+        typeof tile.position === "number" ? tile.position : index,
+    })),
+  };
 }
 
 export async function GET() {
@@ -52,45 +85,38 @@ export async function GET() {
       .eq("property_id", property.id)
       .maybeSingle();
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
-    let configuration = data?.configuration;
+    let configuration = data?.configuration as
+      | GuideHomeConfiguration
+      | undefined;
 
     if (mustRestoreConfiguration(configuration)) {
       configuration = RESTORED_CONFIGURATION;
-
-      const { error: restoreError } = await supabaseAdmin
-        .from("guide_home_settings")
-        .upsert(
-          {
-            property_id: property.id,
-            configuration,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: "property_id",
-          },
-        );
-
-      if (restoreError) {
-        throw new Error(restoreError.message);
-      }
+    } else {
+      configuration = mergeWithDefaults(configuration);
     }
 
-    return NextResponse.json({
-      success: true,
-      configuration,
-    });
+    const { error: saveError } = await supabaseAdmin
+      .from("guide_home_settings")
+      .upsert(
+        {
+          property_id: property.id,
+          configuration,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "property_id" },
+      );
+
+    if (saveError) throw new Error(saveError.message);
+
+    return NextResponse.json({ success: true, configuration });
   } catch (error) {
     return NextResponse.json(
       {
         success: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Erreur inconnue",
+          error instanceof Error ? error.message : "Erreur inconnue",
       },
       { status: 500 },
     );
@@ -104,45 +130,37 @@ export async function PUT(request: NextRequest) {
 
     if (!configuration || typeof configuration !== "object") {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Configuration invalide.",
-        },
+        { success: false, error: "Configuration invalide." },
         { status: 400 },
       );
     }
 
     const property = await getProperty();
+    const normalizedConfiguration = mergeWithDefaults(configuration);
 
     const { error } = await supabaseAdmin
       .from("guide_home_settings")
       .upsert(
         {
           property_id: property.id,
-          configuration,
+          configuration: normalizedConfiguration,
           updated_at: new Date().toISOString(),
         },
-        {
-          onConflict: "property_id",
-        },
+        { onConflict: "property_id" },
       );
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     return NextResponse.json({
       success: true,
-      configuration,
+      configuration: normalizedConfiguration,
     });
   } catch (error) {
     return NextResponse.json(
       {
         success: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Erreur inconnue",
+          error instanceof Error ? error.message : "Erreur inconnue",
       },
       { status: 500 },
     );
