@@ -1,0 +1,20 @@
+@media (max-width: 767px) {
+  body.public-guide-page main.min-h-screen,
+  body.public-guide-page main > div.min-h-screen {
+    min-height: auto !important;
+  }
+
+  body.public-guide-page main > div > section:nth-of-type(2) {
+    padding-bottom: 1rem !important;
+  }
+
+  body.public-guide-page main > div > nav {
+    position: sticky !important;
+    right: auto !important;
+    bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
+    left: auto !important;
+    width: calc(100% - 24px) !important;
+    margin: 0.75rem auto max(0.75rem, env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+  }
+}
