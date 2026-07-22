@@ -6,10 +6,15 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  FileText,
   Home,
+  Image as ImageIcon,
+  Loader2,
   Plus,
   Save,
   Trash2,
+  Upload,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
@@ -18,6 +23,7 @@ import {
   mergeGuideContent,
   type GuideContentBlock,
   type GuideContentConfiguration,
+  type GuideContentMedia,
 } from "@/lib/guide-content-config";
 
 type Props = { params: Promise<{ section: string }> };
@@ -38,6 +44,12 @@ const aliases: Record<string, string> = {
   wifi: "wifi",
 };
 
+function mediaType(file: File): GuideContentMedia["type"] {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  return "pdf";
+}
+
 export default function AdminSectionPage({ params }: Props) {
   const { section } = use(params);
   const sectionId = aliases[section] ?? section;
@@ -45,24 +57,31 @@ export default function AdminSectionPage({ params }: Props) {
   const [allContent, setAllContent] = useState<GuideContentConfiguration>(DEFAULT_GUIDE_CONTENT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingBlock, setUploadingBlock] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
     async function load() {
       try {
         const response = await fetch("/api/guide-content", { cache: "no-store" });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.error || "Chargement impossible");
-        setAllContent(mergeGuideContent(result.content));
+        if (!cancelled) setAllContent(mergeGuideContent(result.content));
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Chargement impossible");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Chargement impossible");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
+
     load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [sectionId]);
 
   const current = useMemo(
     () => allContent[sectionId] ?? fallback,
@@ -70,40 +89,41 @@ export default function AdminSectionPage({ params }: Props) {
   );
 
   function updateBlock(id: string, updates: Partial<GuideContentBlock>) {
-    setAllContent((previous) => ({
-      ...previous,
-      [sectionId]: {
-        ...current,
-        blocks: current.blocks.map((block) =>
-          block.id === id ? { ...block, ...updates } : block,
-        ),
-      },
-    }));
+    setAllContent((previous) => {
+      const source = previous[sectionId] ?? fallback;
+      return {
+        ...previous,
+        [sectionId]: {
+          ...source,
+          blocks: source.blocks.map((block) => block.id === id ? { ...block, ...updates } : block),
+        },
+      };
+    });
   }
 
   function addBlock() {
     const id = `block-${Date.now()}`;
-    setAllContent((previous) => ({
-      ...previous,
-      [sectionId]: {
-        ...current,
-        blocks: [
-          ...current.blocks,
-          { id, title: "Nouvelle information", content: "Texte à compléter." },
-        ],
-      },
-    }));
+    setAllContent((previous) => {
+      const source = previous[sectionId] ?? fallback;
+      return {
+        ...previous,
+        [sectionId]: {
+          ...source,
+          blocks: [...source.blocks, { id, title: "Nouvelle information", content: "Texte à compléter.", media: [] }],
+        },
+      };
+    });
   }
 
   function deleteBlock(id: string) {
     if (!window.confirm("Supprimer ce bloc ?")) return;
-    setAllContent((previous) => ({
-      ...previous,
-      [sectionId]: {
-        ...current,
-        blocks: current.blocks.filter((block) => block.id !== id),
-      },
-    }));
+    setAllContent((previous) => {
+      const source = previous[sectionId] ?? fallback;
+      return {
+        ...previous,
+        [sectionId]: { ...source, blocks: source.blocks.filter((block) => block.id !== id) },
+      };
+    });
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
@@ -113,8 +133,37 @@ export default function AdminSectionPage({ params }: Props) {
     [next[index], next[target]] = [next[target], next[index]];
     setAllContent((previous) => ({
       ...previous,
-      [sectionId]: { ...current, blocks: next },
+      [sectionId]: { ...(previous[sectionId] ?? fallback), blocks: next },
     }));
+  }
+
+  async function uploadMedia(blockId: string, file: File) {
+    setUploadingBlock(blockId);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/media/upload", { method: "POST", body: formData });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Import impossible");
+      const block = current.blocks.find((item) => item.id === blockId);
+      const media: GuideContentMedia = {
+        id: `media-${Date.now()}`,
+        type: mediaType(file),
+        url: result.url,
+        name: result.fileName || file.name,
+      };
+      updateBlock(blockId, { media: [...(block?.media ?? []), media] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import impossible");
+    } finally {
+      setUploadingBlock(null);
+    }
+  }
+
+  function removeMedia(blockId: string, mediaId: string) {
+    const block = current.blocks.find((item) => item.id === blockId);
+    updateBlock(blockId, { media: (block?.media ?? []).filter((item) => item.id !== mediaId) });
   }
 
   async function save() {
@@ -138,12 +187,10 @@ export default function AdminSectionPage({ params }: Props) {
     }
   }
 
-  if (loading) {
-    return <main className="grid min-h-screen place-items-center bg-[#e7dfd4] text-sm font-bold">Chargement…</main>;
-  }
+  if (loading) return <main className="grid min-h-screen place-items-center bg-[#e7dfd4] text-sm font-bold">Chargement…</main>;
 
   return (
-    <main className="min-h-screen bg-[#e7dfd4] p-3 sm:p-5">
+    <main key={sectionId} className="min-h-screen bg-[#e7dfd4] p-3 sm:p-5">
       <div className="mx-auto max-w-[1000px] overflow-hidden rounded-[28px] bg-[#faf8f4] shadow-xl">
         <header className="flex items-center justify-between border-b border-black/5 px-4 py-4 sm:px-7">
           <div className="flex items-center gap-3">
@@ -182,6 +229,34 @@ export default function AdminSectionPage({ params }: Props) {
                   <Field label="Titre" value={block.title} onChange={(value) => updateBlock(block.id, { title: value })} />
                   <Field label="Badge facultatif" value={block.badge ?? ""} onChange={(value) => updateBlock(block.id, { badge: value || undefined })} placeholder="Ex. AVANT 10 H" />
                   <label><span className="mb-2 block text-xs font-black">Texte affiché dans le livret</span><textarea rows={5} value={block.content} onChange={(event) => updateBlock(block.id, { content: event.target.value })} className="w-full resize-y rounded-[17px] border border-black/10 bg-[#faf8f4] px-4 py-3 text-sm outline-none focus:border-black" /></label>
+
+                  <div className="rounded-[20px] border border-dashed border-black/15 bg-[#faf8f4] p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div><p className="text-sm font-black">Illustrations</p><p className="mt-1 text-xs text-black/45">Ajoutez une photo, une vidéo ou un PDF à ce bloc.</p></div>
+                      <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 text-xs font-black text-white">
+                        {uploadingBlock === block.id ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                        {uploadingBlock === block.id ? "Import…" : "Ajouter un fichier"}
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,application/pdf" className="hidden" disabled={uploadingBlock !== null} onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadMedia(block.id, file); event.currentTarget.value = ""; }} />
+                      </label>
+                    </div>
+
+                    {(block.media?.length ?? 0) > 0 && (
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {block.media!.map((media) => (
+                          <div key={media.id} className="overflow-hidden rounded-[16px] bg-white shadow-sm">
+                            {media.type === "image" && <img src={media.url} alt={media.name} className="h-36 w-full object-cover" />}
+                            {media.type === "video" && <video src={media.url} controls className="h-36 w-full bg-black object-contain" />}
+                            {media.type === "pdf" && <a href={media.url} target="_blank" className="flex h-36 flex-col items-center justify-center gap-2 bg-[#eee3d3]"><FileText size={28} /><span className="px-3 text-center text-xs font-black">Ouvrir le PDF</span></a>}
+                            <div className="flex items-center justify-between gap-3 p-3">
+                              <div className="flex min-w-0 items-center gap-2">{media.type === "image" ? <ImageIcon size={16} /> : media.type === "video" ? <Video size={16} /> : <FileText size={16} />}<span className="truncate text-xs font-bold">{media.name}</span></div>
+                              <button type="button" onClick={() => removeMedia(block.id, media.id)} className="grid h-8 w-8 flex-none place-items-center rounded-full bg-red-50 text-red-600"><Trash2 size={14} /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Valeur à copier (facultatif)" value={block.copyValue ?? ""} onChange={(value) => updateBlock(block.id, { copyValue: value || undefined })} />
                     <Field label="Recherche Google Maps (facultatif)" value={block.mapQuery ?? ""} onChange={(value) => updateBlock(block.id, { mapQuery: value || undefined })} />
