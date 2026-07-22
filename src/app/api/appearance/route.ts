@@ -94,7 +94,9 @@ export async function GET() {
     if (mustRestoreConfiguration(configuration)) {
       configuration = RESTORED_CONFIGURATION;
     } else {
-      configuration = mergeWithDefaults(configuration);
+      configuration = mergeWithDefaults(
+  configuration ?? RESTORED_CONFIGURATION
+);
     }
 
     const { error: saveError } = await supabaseAdmin
