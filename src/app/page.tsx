@@ -37,6 +37,12 @@ import {
 
 type SectionId = keyof typeof DEFAULT_GUIDE_CONTENT | "contact";
 
+type NavigationItem = {
+  label: string;
+  icon: React.ElementType;
+  target: SectionId | null;
+};
+
 const iconById: Record<string, React.ElementType> = {
   arrival: KeyRound,
   wifi: Wifi,
@@ -51,6 +57,14 @@ const iconById: Record<string, React.ElementType> = {
   transport: Bus,
   emergencies: HeartPulse,
 };
+
+const navigationItems: NavigationItem[] = [
+  { label: "Accueil", icon: Home, target: null },
+  { label: "Séjour", icon: KeyRound, target: "arrival" },
+  { label: "Découvrir", icon: Compass, target: "activities" },
+  { label: "Adresses", icon: Utensils, target: "restaurants" },
+  { label: "Contact", icon: MessageCircle, target: "contact" },
+];
 
 export default function HomePage() {
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
@@ -122,8 +136,11 @@ export default function HomePage() {
           </div>
 
           <nav className="mt-5 grid grid-cols-5 rounded-[24px] border border-black/5 bg-white p-2 shadow-xl">
-            {[["Accueil", Home, null], ["Séjour", KeyRound, "arrival"], ["Découvrir", Compass, "activities"], ["Adresses", Utensils, "restaurants"], ["Contact", MessageCircle, "contact"]].map(([label, Icon, target]) => (
-              <button key={label as string} type="button" onClick={() => setActiveSection(target as SectionId | null)} className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[18px] text-[9px] font-bold text-black/55 first:bg-[#eee3d3] first:text-black"><Icon size={20} />{label as string}</button>
+            {navigationItems.map(({ label, icon: Icon, target }) => (
+              <button key={label} type="button" onClick={() => setActiveSection(target)} className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[18px] text-[9px] font-bold text-black/55 first:bg-[#eee3d3] first:text-black">
+                <Icon size={20} />
+                {label}
+              </button>
             ))}
           </nav>
         </section>
