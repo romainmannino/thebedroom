@@ -8,11 +8,11 @@ import { DEFAULT_MINIBAR_CATALOG, type MinibarCatalog } from "@/lib/minibar-conf
 type FilterKey = "Tout" | "Boissons" | "Alimentation" | "Hygiène" | "Dépannage";
 
 const FILTERS: { key: FilterKey; label: string; icon: React.ElementType }[] = [
+  { key: "Tout", label: "Tout", icon: Grid2X2 },
   { key: "Boissons", label: "Boissons", icon: CupSoda },
-  { key: "Alimentation", label: "À manger", icon: UtensilsCrossed },
+  { key: "Alimentation", label: "Alimentation", icon: UtensilsCrossed },
   { key: "Hygiène", label: "Hygiène", icon: Sparkles },
   { key: "Dépannage", label: "Dépannage", icon: BatteryCharging },
-  { key: "Tout", label: "Tout", icon: Grid2X2 },
 ];
 
 export default function BoutiquePage() {
