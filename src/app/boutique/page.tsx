@@ -119,15 +119,15 @@ export default function BoutiquePage() {
         <div key={activeFilter} className="mt-5 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3">
           {displayedProducts.map((product) => {
             const quantity = cart[product.id] ?? 0;
-            return <article key={product.id} className={`flex h-full min-h-[390px] flex-col overflow-hidden rounded-[22px] border bg-white p-2 shadow-sm transition sm:min-h-[410px] ${quantity ? "border-black" : "border-black/5"}`}>
+            return <article key={product.id} className={`flex h-full flex-col overflow-hidden rounded-[22px] border bg-white p-2 shadow-sm transition ${quantity ? "border-black" : "border-black/5"}`}>
               <div className="relative aspect-square shrink-0 overflow-hidden rounded-[17px] bg-[#eee3d3]">
                 {product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center px-3 text-center text-xs font-black text-black/30">{product.name}</div>}
                 <span className="absolute right-2 top-2 rounded-full bg-black px-2.5 py-1.5 text-xs font-black text-white">{(product.priceCents/100).toFixed(2).replace(".",",")} €</span>
               </div>
               <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
-                <div className="min-h-[92px]">
+                <div>
                   <h3 className="line-clamp-2 text-sm font-black leading-tight text-black">{product.name}</h3>
-                  <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-black/45">{product.description}</p>
+                  {product.description && <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-black/45">{product.description}</p>}
                 </div>
                 <div className="mt-auto pt-3">
                   {quantity === 0 ? <button onClick={()=>setQuantity(product.id,1)} className="min-h-10 w-full rounded-full bg-black text-xs font-black text-white">Sélectionner</button> : <div className="flex min-h-10 items-center justify-between rounded-full bg-black p-1 text-white"><button onClick={()=>setQuantity(product.id,quantity-1)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><Minus size={15}/></button><strong>{quantity}</strong><button onClick={()=>setQuantity(product.id,quantity+1)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><Plus size={15}/></button></div>}
