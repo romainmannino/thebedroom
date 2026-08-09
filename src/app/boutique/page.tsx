@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BatteryCharging, CupSoda, Minus, Plus, RotateCcw, ShoppingBag, Sparkles, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, BatteryCharging, CupSoda, Grid2X2, Minus, Plus, Search, ShoppingBag, Sparkles, UtensilsCrossed, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_MINIBAR_CATALOG, type MinibarCatalog } from "@/lib/minibar-config";
@@ -12,13 +12,14 @@ const FILTERS: { key: FilterKey; label: string; icon: React.ElementType }[] = [
   { key: "Alimentation", label: "Alimentation", icon: UtensilsCrossed },
   { key: "Hygiène", label: "Hygiène", icon: Sparkles },
   { key: "Dépannage", label: "Dépannage", icon: BatteryCharging },
-  { key: "Tout", label: "Tout", icon: RotateCcw },
+  { key: "Tout", label: "Tout", icon: Grid2X2 },
 ];
 
 export default function BoutiquePage() {
   const [catalog, setCatalog] = useState<MinibarCatalog>(DEFAULT_MINIBAR_CATALOG);
   const [cart, setCart] = useState<Record<string, number>>({});
   const [activeFilter, setActiveFilter] = useState<FilterKey>("Tout");
+  const [search, setSearch] = useState("");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,10 +35,24 @@ export default function BoutiquePage() {
     [catalog.products],
   );
 
-  const displayedProducts = useMemo(
-    () => activeFilter === "Tout" ? products : products.filter((product) => product.category === activeFilter),
-    [activeFilter, products],
-  );
+  const displayedProducts = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("fr");
+    return products.filter((product) => {
+      const matchesFilter = activeFilter === "Tout" || product.category === activeFilter;
+      const matchesSearch = !query || `${product.name} ${product.description} ${product.category}`.toLocaleLowerCase("fr").includes(query);
+      return matchesFilter && matchesSearch;
+    });
+  }, [activeFilter, products, search]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<FilterKey, number>();
+    counts.set("Tout", products.length);
+    for (const filter of FILTERS) {
+      if (filter.key === "Tout") continue;
+      counts.set(filter.key, products.filter((product) => product.category === filter.key).length);
+    }
+    return counts;
+  }, [products]);
 
   const count = Object.values(cart).reduce((sum, q) => sum + q, 0);
   const total = products.reduce((sum, p) => sum + (cart[p.id] ?? 0) * p.priceCents, 0);
@@ -69,6 +84,10 @@ export default function BoutiquePage() {
     }
   }
 
+  const activeLabel = search.trim()
+    ? `${displayedProducts.length} résultat${displayedProducts.length > 1 ? "s" : ""}`
+    : `${activeFilter} · ${displayedProducts.length} article${displayedProducts.length > 1 ? "s" : ""}`;
+
   return <main className="min-h-screen bg-[#e7dfd4] p-3 sm:p-6">
     <div className="mx-auto max-w-[900px] overflow-hidden rounded-[32px] bg-[#faf8f4] shadow-2xl">
       <header className="flex items-center justify-between border-b border-black/5 px-5 py-4">
@@ -88,14 +107,41 @@ export default function BoutiquePage() {
           <span className="rounded-full bg-[#eee3d3] px-3 py-2 text-xs font-bold">{count} article{count > 1 ? "s" : ""}</span>
         </div>
 
-        <div className="mt-4 flex gap-2 overflow-x-auto px-1 pb-2 sm:px-2">
-          {FILTERS.map(({ key, label, icon: Icon }) => {
-            const active = activeFilter === key;
-            return <button key={key} type="button" onClick={() => setActiveFilter(key)} className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition ${active ? "bg-black text-white" : "bg-[#eee3d3] text-black"}`}><Icon size={16}/>{label}</button>;
-          })}
+        <div className="sticky top-2 z-30 mt-4 rounded-[20px] border border-black/5 bg-[#faf8f4]/95 px-2 py-2 shadow-sm backdrop-blur sm:mx-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {FILTERS.map(({ key, label, icon: Icon }) => {
+                const active = activeFilter === key;
+                return <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveFilter(key)}
+                  aria-label={`${label} (${categoryCounts.get(key) ?? 0})`}
+                  title={label}
+                  className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-full border transition active:scale-95 ${active ? "border-black bg-black text-white" : "border-black/10 bg-[#f3ede5] text-black/65 hover:bg-[#ece3d8]"}`}
+                >
+                  <Icon size={15}/>
+                  {(categoryCounts.get(key) ?? 0) > 0 && key !== "Tout" && <span className={`absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[8px] font-black ${active ? "bg-[#eee3d3] text-black" : "bg-black text-white"}`}>{categoryCounts.get(key)}</span>}
+                </button>;
+              })}
+            </div>
+            <span className="hidden text-[10px] font-black text-black/40 sm:block">{activeLabel}</span>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-black/5">
+            <Search size={14} className="shrink-0 text-black/35"/>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Rechercher un article…"
+              className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-black/30"
+            />
+            {search && <button type="button" onClick={() => setSearch("")} aria-label="Effacer la recherche" className="grid h-6 w-6 place-items-center rounded-full bg-[#eee3d3] text-black/55"><X size={12}/></button>}
+          </div>
+          <p className="mt-2 px-1 text-[10px] font-bold text-black/40 sm:hidden">{activeLabel}</p>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div key={`${activeFilter}-${search}`} className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 animate-[fadeIn_.2s_ease-out]">
           {displayedProducts.map((product) => {
             const quantity = cart[product.id] ?? 0;
             return <article key={product.id} className={`overflow-hidden rounded-[22px] border bg-white p-2 shadow-sm transition ${quantity ? "border-black" : "border-black/5"}`}>
@@ -112,7 +158,7 @@ export default function BoutiquePage() {
           })}
         </div>
 
-        {displayedProducts.length === 0 && <div className="mt-5 rounded-[22px] bg-[#eee3d3] p-6 text-center text-sm font-bold text-black/50">Aucun article disponible dans cette catégorie.</div>}
+        {displayedProducts.length === 0 && <div className="mt-5 rounded-[22px] bg-[#eee3d3] p-6 text-center text-sm font-bold text-black/50">Aucun article trouvé.</div>}
 
         <div className="sticky bottom-3 mt-5 rounded-[26px] border border-black/5 bg-white/95 p-4 shadow-2xl backdrop-blur">
           <div className="flex items-end justify-between"><div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-black/35">Votre panier</p><p className="mt-1 text-sm font-bold">{count ? `${count} article${count>1?"s":""}` : "Aucun article"}</p></div><strong className="text-2xl">{(total/100).toFixed(2).replace(".",",")} €</strong></div>
