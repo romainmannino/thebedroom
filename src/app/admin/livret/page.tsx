@@ -16,6 +16,7 @@ import {
   Palette,
   Plane,
   Printer,
+  ScrollText,
   ShoppingBag,
   ShoppingBasket,
   Utensils,
@@ -26,8 +27,8 @@ import Link from "next/link";
 const sections = [
   ["arrival", "Arrivée & départ", "Horaires, accès et consignes", KeyRound],
   ["wifi", "Wi-Fi", "Réseau et mot de passe", Wifi],
-  ["bon-a-savoir", "Bon à savoir", "Informations utiles + règles", Info],
-  ["minibar", "Mini bar / Boutique", "Articles, photos et tarifs", ShoppingBasket],
+  ["bon-a-savoir", "Bon à savoir", "Équipements et informations utiles", Info],
+  ["regles", "Les règles", "Consignes du logement", ScrollText],
   ["linge", "Linge & équipements", "Salle de bain et literie", BedDouble],
   ["restaurants", "Restaurants", "Bonnes adresses à proximité", Utensils],
   ["activites", "À découvrir", "Visites et activités", MapPin],
@@ -36,6 +37,7 @@ const sections = [
   ["centres-interet", "Centres d’intérêt", "Aéroport, stade, arena et Eurexpo", Plane],
   ["transports", "Transports", "Bus, tramway et déplacements", Bus],
   ["urgences", "Urgences", "Numéros, hôpitaux et pharmacies", HeartPulse],
+  ["minibar", "Mini bar / Boutique", "Articles, photos et tarifs", ShoppingBasket],
 ] as const;
 
 export default function AdminGuidePage() {
@@ -56,8 +58,12 @@ export default function AdminGuidePage() {
         <section className="p-4 sm:p-7">
           <div className="rounded-[28px] bg-black p-6 text-white sm:p-8">
             <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-full bg-white text-black"><BookOpen size={22} /></span><div><p className="font-serif text-2xl italic">Votre livret</p><h2 className="text-3xl font-black tracking-[-0.05em] sm:text-4xl">MODIFIER LE CONTENU</h2></div></div>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/60">Chaque carte ouvre le contenu affiché derrière la même vignette. Les informations de l’ancienne rubrique Règles sont maintenant regroupées dans Bon à savoir.</p>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/60">Chaque carte ouvre exactement la rubrique correspondante du livret voyageur. Les règles sont de nouveau une rubrique indépendante et le Mini bar dispose de son propre catalogue.</p>
           </div>
+
+          <Link href="/admin/livret-a4" className="mt-5 flex items-center justify-between gap-4 rounded-[24px] bg-[#eee3d3] p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div className="flex items-center gap-4"><span className="grid h-12 w-12 flex-none place-items-center rounded-full bg-black text-white"><Printer size={21}/></span><div><p className="text-[10px] font-black uppercase tracking-[0.12em] text-black/45">Version imprimable</p><h3 className="mt-1 text-lg font-black">GÉNÉRER / TÉLÉCHARGER LE LIVRET A4 PDF</h3><p className="mt-1 text-xs text-black/50">Toutes les informations et photos actuelles sont automatiquement mises en page.</p></div></div><span className="hidden text-2xl sm:block">→</span>
+          </Link>
 
           <section className="mt-8">
             <p className="font-serif text-2xl italic">Les informations</p>
@@ -74,11 +80,10 @@ export default function AdminGuidePage() {
           </section>
 
           <section className="mt-10 border-t border-black/5 pt-8">
-            <p className="font-serif text-2xl italic">Personnaliser & imprimer</p><h3 className="text-2xl font-black tracking-[-0.04em]">APPARENCE, CONTACT & LIVRET A4</h3>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <p className="font-serif text-2xl italic">Personnaliser</p><h3 className="text-2xl font-black tracking-[-0.04em]">APPARENCE & COORDONNÉES</h3>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <Setting href="/admin/apparence" icon={Palette} title="Apparence" subtitle="Photos, ordre et taille des vignettes" />
               <Setting href="/admin/contact" icon={MessageCircle} title="Contact & WhatsApp" subtitle="Numéro affiché aux voyageurs" />
-              <Setting href="/admin/livret-a4" icon={Printer} title="Livret A4 / PDF" subtitle="Mettre en page toutes les infos et photos" />
               <Setting href="/" icon={Eye} title="Aperçu" subtitle="Voir la version voyageur" />
             </div>
           </section>
