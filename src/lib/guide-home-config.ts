@@ -12,6 +12,7 @@ export type HomeTileConfiguration = {
 
 export type GuideHomeConfiguration = {
   heroImage: string;
+  appIcon: string;
   greeting: string;
   heroTitle: string;
   heroSubtitle: string;
@@ -23,12 +24,11 @@ export type GuideHomeConfiguration = {
 export const HOME_CONFIG_STORAGE_KEY = "the-bedroom-home-appearance";
 
 export const DEFAULT_HOME_CONFIGURATION: GuideHomeConfiguration = {
-  heroImage:
-    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1400&q=88",
+  heroImage: "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1400&q=88",
+  appIcon: "",
   greeting: "Bonjour !",
   heroTitle: "BIENVENUE CHEZ NOUS",
-  heroSubtitle:
-    "Toutes les informations utiles pour profiter de votre séjour.",
+  heroSubtitle: "Toutes les informations utiles pour profiter de votre séjour.",
   heroHeight: "normal",
   whatsappPhone: "33627630932",
   tiles: [
