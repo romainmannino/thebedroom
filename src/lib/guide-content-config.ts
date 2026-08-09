@@ -35,6 +35,8 @@ const RULE_BLOCKS: GuideContentBlock[] = [
   { id: "safety", title: "Sécurité", content: "Respectez les équipements et les consignes de sécurité." },
 ];
 
+const RULE_IDS = new Set(RULE_BLOCKS.map((block) => block.id));
+
 export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
   arrival: {
     id: "arrival", script: "Les horaires", title: "ARRIVÉE & DÉPART", description: "Horaires, accès autonome et consignes de départ.",
@@ -51,7 +53,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   know: {
-    id: "know", script: "Bon", title: "À SAVOIR", description: "Équipements, informations utiles et règles du logement.",
+    id: "know", script: "Bon", title: "À SAVOIR", description: "Équipements et informations utiles dans le logement.",
     blocks: [
       { id: "tv", title: "Télévision", content: "Les chaînes de la TNT sont accessibles depuis l’application Molotov TV sur l’écran d’accueil." },
       { id: "climate", title: "Chauffage et climatisation", content: "La température est préréglée. Une télécommande permet de l’adapter à votre convenance." },
@@ -59,8 +61,11 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
       { id: "parking", title: "Stationnement", content: "Places gratuites devant le logement et stationnement possible sur le parking de Carrefour Market." },
       { id: "cleaning", title: "Ménage", content: "Le nécessaire de ménage se trouve dans le placard en face du lit, à côté du chauffe-eau." },
       { id: "hob", title: "Plaque de cuisson", content: "Si elle est verrouillée, maintenez quelques secondes la touche portant le symbole cadenas." },
-      ...RULE_BLOCKS,
     ],
+  },
+  rules: {
+    id: "rules", script: "Quelques", title: "RÈGLES", description: "Les règles essentielles à respecter pendant le séjour.",
+    blocks: RULE_BLOCKS,
   },
   minibar: {
     id: "minibar", script: "Envie de quelque chose ?", title: "MINI BAR & BOUTIQUE", description: "Boissons, snacks et produits de dépannage disponibles directement dans le logement.",
@@ -156,15 +161,24 @@ function uniqueBlocks(blocks: GuideContentBlock[]) {
 
 export function mergeGuideContent(value: unknown): GuideContentConfiguration {
   const incoming = value && typeof value === "object" ? (value as Partial<GuideContentConfiguration>) : {};
+  const knowIncoming = incoming.know && Array.isArray(incoming.know.blocks) ? incoming.know.blocks : [];
+  const rulesMigratedFromKnow = knowIncoming.filter((block) => RULE_IDS.has(block.id));
+
   return Object.fromEntries(
     Object.entries(DEFAULT_GUIDE_CONTENT).map(([key, section]) => {
       const current = incoming[key];
+
       if (key === "know") {
-        const currentBlocks = current && Array.isArray(current.blocks) ? current.blocks : section.blocks;
-        const legacyRules = incoming.rules && Array.isArray(incoming.rules.blocks) ? incoming.rules.blocks : [];
-        const requiredRules = RULE_BLOCKS.filter((rule) => !currentBlocks.some((block) => block.id === rule.id));
-        return [key, { ...section, ...current, blocks: uniqueBlocks([...currentBlocks, ...legacyRules, ...requiredRules]) }];
+        const source = current && Array.isArray(current.blocks) ? current.blocks : section.blocks;
+        return [key, { ...section, ...current, description: section.description, blocks: source.filter((block) => !RULE_IDS.has(block.id)) }];
       }
+
+      if (key === "rules") {
+        const currentRules = current && Array.isArray(current.blocks) ? current.blocks : [];
+        const blocks = uniqueBlocks([...currentRules, ...rulesMigratedFromKnow, ...RULE_BLOCKS]);
+        return [key, { ...section, ...current, blocks }];
+      }
+
       return [key, current && Array.isArray(current.blocks) ? { ...section, ...current, blocks: current.blocks } : section];
     }),
   );
