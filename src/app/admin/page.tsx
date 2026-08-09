@@ -8,7 +8,6 @@ import {
   MessageCircle,
   Palette,
   Printer,
-  Settings,
   Share2,
   ShoppingBasket,
   Sparkles,
@@ -171,7 +170,6 @@ export default function AdminPage() {
               <AdminLink href="/admin/livret-a4" icon={Printer} label="Livret A4 / PDF" />
               <AdminLink href="/admin/apparence" icon={Palette} label="Apparence" />
               <AdminLink href="/admin/contact" icon={MessageCircle} label="Contact & WhatsApp" />
-              <AdminLink href="/admin/parametres" icon={Settings} label="Paramètres" />
             </nav>
             <div className="mt-8 rounded-[20px] bg-black p-4 text-white">
               <Sparkles size={19} />
