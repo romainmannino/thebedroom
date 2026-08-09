@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Phone,
   Plane,
+  ScrollText,
   ShoppingBag,
   ShoppingBasket,
   Utensils,
@@ -34,6 +35,7 @@ const iconById: Record<string, React.ElementType> = {
   arrival: KeyRound,
   wifi: Wifi,
   know: Info,
+  rules: ScrollText,
   minibar: ShoppingBasket,
   linen: BedDouble,
   restaurants: Utensils,
@@ -48,8 +50,7 @@ const iconById: Record<string, React.ElementType> = {
 const navigationItems: NavigationItem[] = [
   { label: "Accueil", icon: Home, target: null },
   { label: "Séjour", icon: KeyRound, target: "arrival" },
-  { label: "Découvrir", icon: Compass, target: "activities" },
-  { label: "Adresses", icon: Utensils, target: "restaurants" },
+  { label: "Mini bar", icon: ShoppingBasket, target: "minibar" },
   { label: "Contact", icon: MessageCircle, target: "contact" },
 ];
 
@@ -96,6 +97,14 @@ export default function HomePage() {
     setActiveSection(id as SectionId);
   }
 
+  function openNavigation(target: SectionId | null) {
+    if (target === "minibar") {
+      window.location.href = "/boutique";
+      return;
+    }
+    setActiveSection(target);
+  }
+
   const section = activeSection && activeSection !== "contact" ? guideContent[activeSection] : null;
 
   return (
@@ -124,8 +133,8 @@ export default function HomePage() {
             })}
           </div>
 
-          <nav className="mt-5 grid grid-cols-5 rounded-[24px] border border-black/5 bg-white p-2 shadow-xl">
-            {navigationItems.map(({ label, icon: Icon, target }) => <button key={label} type="button" onClick={() => setActiveSection(target)} className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[18px] text-[9px] font-bold text-black/55 first:bg-[#eee3d3] first:text-black"><Icon size={20} />{label}</button>)}
+          <nav className="mt-5 grid grid-cols-4 rounded-[24px] border border-black/5 bg-white p-2 shadow-xl">
+            {navigationItems.map(({ label, icon: Icon, target }) => <button key={label} type="button" onClick={() => openNavigation(target)} className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[18px] text-[9px] font-bold text-black/55 first:bg-[#eee3d3] first:text-black"><Icon size={20} />{label}</button>)}
           </nav>
         </section>
 
