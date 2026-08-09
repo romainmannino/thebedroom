@@ -26,6 +26,15 @@ export type GuideContentSection = {
 
 export type GuideContentConfiguration = Record<string, GuideContentSection>;
 
+const RULE_BLOCKS: GuideContentBlock[] = [
+  { id: "respect", title: "Respect des lieux", content: "Prenez soin du logement et de ses extérieurs." },
+  { id: "animals", title: "Animaux", content: "Les animaux ne sont pas acceptés." },
+  { id: "smoking", title: "Non-fumeur", content: "Il est interdit de fumer à l’intérieur." },
+  { id: "parties", title: "Fêtes", content: "Pas de fêtes et bruit limité après 22 h." },
+  { id: "guests", title: "Voyageurs", content: "Aucun voyageur supplémentaire imprévu." },
+  { id: "safety", title: "Sécurité", content: "Respectez les équipements et les consignes de sécurité." },
+];
+
 export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
   arrival: {
     id: "arrival", script: "Les horaires", title: "ARRIVÉE & DÉPART", description: "Horaires, accès autonome et consignes de départ.",
@@ -42,7 +51,7 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
     ],
   },
   know: {
-    id: "know", script: "Bon", title: "À SAVOIR", description: "Équipements et informations utiles dans le logement.",
+    id: "know", script: "Bon", title: "À SAVOIR", description: "Équipements, informations utiles et règles du logement.",
     blocks: [
       { id: "tv", title: "Télévision", content: "Les chaînes de la TNT sont accessibles depuis l’application Molotov TV sur l’écran d’accueil." },
       { id: "climate", title: "Chauffage et climatisation", content: "La température est préréglée. Une télécommande permet de l’adapter à votre convenance." },
@@ -50,17 +59,13 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
       { id: "parking", title: "Stationnement", content: "Places gratuites devant le logement et stationnement possible sur le parking de Carrefour Market." },
       { id: "cleaning", title: "Ménage", content: "Le nécessaire de ménage se trouve dans le placard en face du lit, à côté du chauffe-eau." },
       { id: "hob", title: "Plaque de cuisson", content: "Si elle est verrouillée, maintenez quelques secondes la touche portant le symbole cadenas." },
+      ...RULE_BLOCKS,
     ],
   },
-  rules: {
-    id: "rules", script: "Quelques", title: "RÈGLES", description: "Les règles essentielles à respecter pendant le séjour.",
+  minibar: {
+    id: "minibar", script: "Envie de quelque chose ?", title: "MINI BAR & BOUTIQUE", description: "Boissons, snacks et produits de dépannage disponibles directement dans le logement.",
     blocks: [
-      { id: "respect", title: "Respect des lieux", content: "Prenez soin du logement et de ses extérieurs." },
-      { id: "animals", title: "Animaux", content: "Les animaux ne sont pas acceptés." },
-      { id: "smoking", title: "Non-fumeur", content: "Il est interdit de fumer à l’intérieur." },
-      { id: "parties", title: "Fêtes", content: "Pas de fêtes et bruit limité après 22 h." },
-      { id: "guests", title: "Voyageurs", content: "Aucun voyageur supplémentaire imprévu." },
-      { id: "safety", title: "Sécurité", content: "Respectez les équipements et les consignes de sécurité." },
+      { id: "minibar-info", title: "Servez-vous après paiement", content: "Choisissez vos articles dans la boutique, réglez en ligne puis servez-vous directement dans le mini bar du logement." },
     ],
   },
   linen: {
@@ -140,11 +145,26 @@ export const DEFAULT_GUIDE_CONTENT: GuideContentConfiguration = {
   },
 };
 
+function uniqueBlocks(blocks: GuideContentBlock[]) {
+  const seen = new Set<string>();
+  return blocks.filter((block) => {
+    if (seen.has(block.id)) return false;
+    seen.add(block.id);
+    return true;
+  });
+}
+
 export function mergeGuideContent(value: unknown): GuideContentConfiguration {
   const incoming = value && typeof value === "object" ? (value as Partial<GuideContentConfiguration>) : {};
   return Object.fromEntries(
     Object.entries(DEFAULT_GUIDE_CONTENT).map(([key, section]) => {
       const current = incoming[key];
+      if (key === "know") {
+        const currentBlocks = current && Array.isArray(current.blocks) ? current.blocks : section.blocks;
+        const legacyRules = incoming.rules && Array.isArray(incoming.rules.blocks) ? incoming.rules.blocks : [];
+        const requiredRules = RULE_BLOCKS.filter((rule) => !currentBlocks.some((block) => block.id === rule.id));
+        return [key, { ...section, ...current, blocks: uniqueBlocks([...currentBlocks, ...legacyRules, ...requiredRules]) }];
+      }
       return [key, current && Array.isArray(current.blocks) ? { ...section, ...current, blocks: current.blocks } : section];
     }),
   );
