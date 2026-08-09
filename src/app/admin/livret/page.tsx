@@ -15,8 +15,9 @@ import {
   MessageCircle,
   Palette,
   Plane,
-  ScrollText,
+  Printer,
   ShoppingBag,
+  ShoppingBasket,
   Utensils,
   Wifi,
 } from "lucide-react";
@@ -25,8 +26,8 @@ import Link from "next/link";
 const sections = [
   ["arrival", "Arrivée & départ", "Horaires, accès et consignes", KeyRound],
   ["wifi", "Wi-Fi", "Réseau et mot de passe", Wifi],
-  ["bon-a-savoir", "Bon à savoir", "Équipements et informations utiles", Info],
-  ["regles", "Les règles", "Consignes du logement", ScrollText],
+  ["bon-a-savoir", "Bon à savoir", "Informations utiles + règles", Info],
+  ["minibar", "Mini bar / Boutique", "Articles, photos et tarifs", ShoppingBasket],
   ["linge", "Linge & équipements", "Salle de bain et literie", BedDouble],
   ["restaurants", "Restaurants", "Bonnes adresses à proximité", Utensils],
   ["activites", "À découvrir", "Visites et activités", MapPin],
@@ -55,27 +56,29 @@ export default function AdminGuidePage() {
         <section className="p-4 sm:p-7">
           <div className="rounded-[28px] bg-black p-6 text-white sm:p-8">
             <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-full bg-white text-black"><BookOpen size={22} /></span><div><p className="font-serif text-2xl italic">Votre livret</p><h2 className="text-3xl font-black tracking-[-0.05em] sm:text-4xl">MODIFIER LE CONTENU</h2></div></div>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/60">Chaque carte ouvre exactement le contenu affiché derrière la même vignette dans le livret voyageur. Vous pouvez aussi ajouter des photos, vidéos et PDF dans chaque bloc.</p>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/60">Chaque carte ouvre le contenu affiché derrière la même vignette. Les informations de l’ancienne rubrique Règles sont maintenant regroupées dans Bon à savoir.</p>
           </div>
 
           <section className="mt-8">
             <p className="font-serif text-2xl italic">Les informations</p>
             <h3 className="text-2xl font-black tracking-[-0.04em]">RUBRIQUES DU LIVRET</h3>
             <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-              {sections.map(([slug, title, subtitle, Icon], index) => (
-                <a key={slug} href={`/admin/${slug}`} className={`group flex min-h-[165px] flex-col rounded-[24px] p-4 transition hover:-translate-y-1 hover:shadow-lg ${index === 0 ? "bg-black text-white" : "bg-[#eee3d3] text-black"}`}>
+              {sections.map(([slug, title, subtitle, Icon], index) => {
+                const href = slug === "minibar" ? "/admin/minibar" : `/admin/${slug}`;
+                return <a key={slug} href={href} className={`group flex min-h-[165px] flex-col rounded-[24px] p-4 transition hover:-translate-y-1 hover:shadow-lg ${index === 0 ? "bg-black text-white" : "bg-[#eee3d3] text-black"}`}>
                   <span className={`grid h-11 w-11 place-items-center rounded-full ${index === 0 ? "bg-white text-black" : "bg-white"}`}><Icon size={20} /></span>
                   <div className="mt-auto"><h4 className="font-black leading-tight">{title}</h4><p className={`mt-1 text-xs leading-relaxed ${index === 0 ? "text-white/55" : "text-black/45"}`}>{subtitle}</p><span className="mt-3 inline-block text-[10px] font-black uppercase tracking-[0.12em] opacity-45 group-hover:opacity-100">Modifier →</span></div>
-                </a>
-              ))}
+                </a>;
+              })}
             </div>
           </section>
 
           <section className="mt-10 border-t border-black/5 pt-8">
-            <p className="font-serif text-2xl italic">Personnaliser</p><h3 className="text-2xl font-black tracking-[-0.04em]">APPARENCE & COORDONNÉES</h3>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <p className="font-serif text-2xl italic">Personnaliser & imprimer</p><h3 className="text-2xl font-black tracking-[-0.04em]">APPARENCE, CONTACT & LIVRET A4</h3>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Setting href="/admin/apparence" icon={Palette} title="Apparence" subtitle="Photos, ordre et taille des vignettes" />
               <Setting href="/admin/contact" icon={MessageCircle} title="Contact & WhatsApp" subtitle="Numéro affiché aux voyageurs" />
+              <Setting href="/admin/livret-a4" icon={Printer} title="Livret A4 / PDF" subtitle="Mettre en page toutes les infos et photos" />
               <Setting href="/" icon={Eye} title="Aperçu" subtitle="Voir la version voyageur" />
             </div>
           </section>
