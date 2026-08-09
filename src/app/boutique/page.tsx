@@ -16,6 +16,14 @@ export default function BoutiquePage() {
   }, []);
 
   const products = useMemo(() => catalog.products.filter((p) => p.active).sort((a,b)=>a.position-b.position), [catalog.products]);
+  const categories = useMemo(() => {
+    const grouped = new Map<string, typeof products>();
+    products.forEach((product) => {
+      const category = product.category || "Autres";
+      grouped.set(category, [...(grouped.get(category) ?? []), product]);
+    });
+    return [...grouped.entries()];
+  }, [products]);
   const count = Object.values(cart).reduce((sum, q) => sum + q, 0);
   const total = products.reduce((sum, p) => sum + (cart[p.id] ?? 0) * p.priceCents, 0);
 
@@ -49,17 +57,22 @@ export default function BoutiquePage() {
         <div className="overflow-hidden rounded-[32px] bg-black p-6 text-white sm:p-8"><p className="font-serif text-3xl italic">{catalog.subtitle}</p><h1 className="mt-1 text-4xl font-black leading-[0.9] tracking-[-0.05em] sm:text-5xl">{catalog.title}</h1><p className="mt-4 max-w-xl text-sm leading-relaxed text-white/60">{catalog.instructions}</p></div>
 
         <div className="mt-6 rounded-[32px] bg-[#171717] p-4 shadow-inner sm:p-6">
-          <div className="mb-4 flex items-center justify-between text-white"><div><p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40">Distributeur</p><h2 className="text-xl font-black">Sélectionnez vos articles</h2></div><span className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold">{count} article{count > 1 ? "s" : ""}</span></div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {products.map((product) => {
-              const quantity = cart[product.id] ?? 0;
-              return <article key={product.id} className={`overflow-hidden rounded-[22px] border p-2 transition ${quantity ? "border-white bg-white" : "border-white/10 bg-white/5 text-white"}`}>
-                <div className="relative aspect-square overflow-hidden rounded-[17px] bg-[#eee3d3]">{product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center px-3 text-center text-xs font-black text-black/30">{product.name}</div>}<span className="absolute right-2 top-2 rounded-full bg-black px-2.5 py-1.5 text-xs font-black text-white">{(product.priceCents/100).toFixed(2).replace(".",",")} €</span></div>
-                <div className="px-1 pb-1 pt-3"><h3 className="text-sm font-black leading-tight">{product.name}</h3><p className={`mt-1 min-h-8 text-[10px] leading-relaxed ${quantity ? "text-black/45" : "text-white/45"}`}>{product.description}</p>
-                  {quantity === 0 ? <button onClick={()=>setQuantity(product.id,1)} className={`mt-3 min-h-10 w-full rounded-full text-xs font-black ${quantity ? "bg-black text-white" : "bg-white text-black"}`}>Sélectionner</button> : <div className="mt-3 flex items-center justify-between rounded-full bg-black p-1 text-white"><button onClick={()=>setQuantity(product.id,quantity-1)} className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><Minus size={16}/></button><strong>{quantity}</strong><button onClick={()=>setQuantity(product.id,quantity+1)} className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><Plus size={16}/></button></div>}
-                </div>
-              </article>;
-            })}
+          <div className="mb-5 flex items-center justify-between text-white"><div><p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40">Distributeur</p><h2 className="text-xl font-black">Sélectionnez vos articles</h2></div><span className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold">{count} article{count > 1 ? "s" : ""}</span></div>
+          <div className="space-y-7">
+            {categories.map(([category, categoryProducts]) => <section key={category}>
+              <div className="mb-3 flex items-center gap-3 text-white"><span className="h-px flex-1 bg-white/10"/><h3 className="text-xs font-black uppercase tracking-[0.12em] text-white/65">{category}</h3><span className="h-px flex-1 bg-white/10"/></div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {categoryProducts.map((product) => {
+                  const quantity = cart[product.id] ?? 0;
+                  return <article key={product.id} className={`overflow-hidden rounded-[22px] border p-2 transition ${quantity ? "border-white bg-white" : "border-white/10 bg-white/5 text-white"}`}>
+                    <div className="relative aspect-square overflow-hidden rounded-[17px] bg-[#eee3d3]">{product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center px-3 text-center text-xs font-black text-black/30">{product.name}</div>}<span className="absolute right-2 top-2 rounded-full bg-black px-2.5 py-1.5 text-xs font-black text-white">{(product.priceCents/100).toFixed(2).replace(".",",")} €</span></div>
+                    <div className="px-1 pb-1 pt-3"><h3 className="text-sm font-black leading-tight">{product.name}</h3><p className={`mt-1 min-h-8 text-[10px] leading-relaxed ${quantity ? "text-black/45" : "text-white/45"}`}>{product.description}</p>
+                      {quantity === 0 ? <button onClick={()=>setQuantity(product.id,1)} className="mt-3 min-h-10 w-full rounded-full bg-white text-xs font-black text-black">Sélectionner</button> : <div className="mt-3 flex items-center justify-between rounded-full bg-black p-1 text-white"><button onClick={()=>setQuantity(product.id,quantity-1)} className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><Minus size={16}/></button><strong>{quantity}</strong><button onClick={()=>setQuantity(product.id,quantity+1)} className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><Plus size={16}/></button></div>}
+                    </div>
+                  </article>;
+                })}
+              </div>
+            </section>)}
           </div>
         </div>
 
