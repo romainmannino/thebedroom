@@ -2,13 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { Download, Share, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
-type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
+const INSTALL_DONE_KEY = "the-bedroom-install-done";
+const INSTALL_PROMPTED_KEY = "the-bedroom-install-prompted";
 
 export function AppWebEnhancer() {
+  const pathname = usePathname();
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIos, setIsIos] = useState(false);
+
+  useEffect(() => {
+    const manifest = document.querySelector("link[rel='manifest']") as HTMLLinkElement | null;
+    if (manifest) manifest.href = pathname.startsWith("/admin") ? "/api/admin-manifest" : "/manifest.webmanifest";
+  }, [pathname]);
 
   useEffect(() => {
     let minibarVisible = true;
@@ -19,47 +32,105 @@ export function AppWebEnhancer() {
         }
       });
     };
-    fetch("/api/appearance", { cache: "no-store" }).then((r) => r.json()).then((data) => {
-      const tile = data?.configuration?.tiles?.find((item: { id: string }) => item.id === "minibar");
-      minibarVisible = tile?.visible !== false;
-      sync();
-    }).catch(() => undefined);
+    fetch("/api/appearance", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        const tile = data?.configuration?.tiles?.find((item: { id: string }) => item.id === "minibar");
+        minibarVisible = tile?.visible !== false;
+        sync();
+      })
+      .catch(() => undefined);
     const observer = new MutationObserver(sync);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone;
-    if (standalone || sessionStorage.getItem("the-bedroom-install-dismissed")) return;
+    if (pathname.startsWith("/admin")) {
+      setShowPrompt(false);
+      return;
+    }
+
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone;
+
+    if (standalone) {
+      localStorage.setItem(INSTALL_DONE_KEY, "1");
+      return;
+    }
+
+    if (localStorage.getItem(INSTALL_DONE_KEY) || localStorage.getItem(INSTALL_PROMPTED_KEY)) return;
+
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     setIsIos(ios);
-    const timer = window.setTimeout(() => setShowPrompt(true), 1200);
+
+    const timer = window.setTimeout(() => {
+      if (ios) {
+        localStorage.setItem(INSTALL_PROMPTED_KEY, "1");
+        setShowPrompt(true);
+      }
+    }, 1200);
+
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
       setInstallEvent(event as BeforeInstallPromptEvent);
+      localStorage.setItem(INSTALL_PROMPTED_KEY, "1");
       setShowPrompt(true);
     };
+
+    const onInstalled = () => {
+      localStorage.setItem(INSTALL_DONE_KEY, "1");
+      setShowPrompt(false);
+      setInstallEvent(null);
+    };
+
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    return () => { window.clearTimeout(timer); window.removeEventListener("beforeinstallprompt", onBeforeInstall); };
-  }, []);
+    window.addEventListener("appinstalled", onInstalled);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, [pathname]);
 
   async function install() {
     if (!installEvent) return;
     await installEvent.prompt();
     const choice = await installEvent.userChoice;
-    if (choice.outcome === "accepted") setShowPrompt(false);
+    if (choice.outcome === "accepted") {
+      localStorage.setItem(INSTALL_DONE_KEY, "1");
+      setShowPrompt(false);
+      setInstallEvent(null);
+    }
   }
 
   function dismiss() {
-    sessionStorage.setItem("the-bedroom-install-dismissed", "1");
+    localStorage.setItem(INSTALL_PROMPTED_KEY, "1");
     setShowPrompt(false);
   }
 
-  if (!showPrompt || (!installEvent && !isIos)) return null;
-  return <div className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-[520px] rounded-[24px] bg-black p-4 text-white shadow-2xl">
-    <button type="button" onClick={dismiss} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10" aria-label="Fermer"><X size={16} /></button>
-    <div className="pr-9"><p className="font-serif text-xl italic">The Bedroom sur votre téléphone</p><p className="mt-1 text-xs leading-relaxed text-white/60">Ajoutez le livret à votre écran d’accueil pour le retrouver comme une application.</p></div>
-    {installEvent ? <button type="button" onClick={install} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-sm font-black text-black"><Download size={17} />Ajouter à l’écran d’accueil</button> : <div className="mt-4 flex items-center gap-3 rounded-[16px] bg-white/10 p-3 text-xs leading-relaxed"><Share size={20} className="flex-none" />Sur iPhone : touchez <b>Partager</b>, puis <b>Sur l’écran d’accueil</b>.</div>}
-  </div>;
+  if (!showPrompt || pathname.startsWith("/admin") || (!installEvent && !isIos)) return null;
+
+  return (
+    <div className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-[520px] rounded-[24px] bg-black p-4 text-white shadow-2xl">
+      <button type="button" onClick={dismiss} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10" aria-label="Fermer">
+        <X size={16} />
+      </button>
+      <div className="pr-9">
+        <p className="font-serif text-xl italic">The Bedroom sur votre téléphone</p>
+        <p className="mt-1 text-xs leading-relaxed text-white/60">Ajoutez le livret à votre écran d’accueil pour le retrouver comme une application. Cette proposition ne sera affichée qu’une seule fois sur cet appareil.</p>
+      </div>
+      {installEvent ? (
+        <button type="button" onClick={install} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-sm font-black text-black">
+          <Download size={17} />Ajouter à l’écran d’accueil
+        </button>
+      ) : (
+        <div className="mt-4 flex items-center gap-3 rounded-[16px] bg-white/10 p-3 text-xs leading-relaxed">
+          <Share size={20} className="flex-none" />Sur iPhone : touchez <b>Partager</b>, puis <b>Sur l’écran d’accueil</b>.
+        </div>
+      )}
+    </div>
+  );
 }
