@@ -47,12 +47,16 @@ const iconById: Record<string, React.ElementType> = {
   emergencies: HeartPulse,
 };
 
-const navigationItems: NavigationItem[] = [
+const baseNavigationItems: NavigationItem[] = [
   { label: "Accueil", icon: Home, target: null },
   { label: "Séjour", icon: KeyRound, target: "arrival" },
   { label: "Mini bar", icon: ShoppingBasket, target: "minibar" },
   { label: "Contact", icon: MessageCircle, target: "contact" },
 ];
+
+function escapeWifiValue(value: string) {
+  return value.replace(/([\\;,:"])/g, "\\$1");
+}
 
 export default function HomePage() {
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
@@ -77,6 +81,16 @@ export default function HomePage() {
   const displayedTiles = useMemo(
     () => [...homeConfiguration.tiles].filter((tile) => tile.visible && guideContent[tile.id]).sort((a, b) => a.position - b.position),
     [guideContent, homeConfiguration.tiles],
+  );
+
+  const minibarVisible = useMemo(
+    () => homeConfiguration.tiles.some((tile) => tile.id === "minibar" && tile.visible),
+    [homeConfiguration.tiles],
+  );
+
+  const navigationItems = useMemo(
+    () => baseNavigationItems.filter((item) => item.target !== "minibar" || minibarVisible),
+    [minibarVisible],
   );
 
   async function copyValue(id: string, value: string) {
@@ -133,8 +147,8 @@ export default function HomePage() {
             })}
           </div>
 
-          <nav className="mt-5 grid grid-cols-4 rounded-[24px] border border-black/5 bg-white p-2 shadow-xl">
-            {navigationItems.map(({ label, icon: Icon, target }) => <button key={label} type="button" onClick={() => openNavigation(target)} className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[18px] text-[9px] font-bold text-black/55 first:bg-[#eee3d3] first:text-black"><Icon size={20} />{label}</button>)}
+          <nav className="mt-5 flex items-stretch justify-center gap-1 rounded-[24px] border border-black/5 bg-white p-2 shadow-xl">
+            {navigationItems.map(({ label, icon: Icon, target }, index) => <button key={label} type="button" onClick={() => openNavigation(target)} className={`flex min-h-14 flex-1 basis-0 flex-col items-center justify-center gap-1 rounded-[18px] text-[9px] font-bold ${index === 0 ? "bg-[#eee3d3] text-black" : "text-black/55"}`}><Icon size={20} />{label}</button>)}
           </nav>
         </section>
 
@@ -150,7 +164,17 @@ export default function HomePage() {
 
 function SectionContent({ section, copied, onCopy }: { section: GuideContentSection; copied: string | null; onCopy: (id: string, value: string) => void }) {
   const Icon = iconById[section.id] ?? Info;
-  return <><Header script={section.script} title={section.title} icon={Icon} /><div className="space-y-4">{section.blocks.map((block) => <article key={block.id} className={`overflow-hidden rounded-[25px] ${block.copyValue ? "bg-black text-white" : "bg-[#eee3d3]"}`}>
+  const wifiNetwork = section.id === "wifi" ? section.blocks.find((block) => block.id === "wifi-network")?.copyValue ?? section.blocks.find((block) => block.id === "wifi-network")?.content ?? "" : "";
+  const wifiPassword = section.id === "wifi" ? section.blocks.find((block) => block.id === "wifi-password")?.copyValue ?? section.blocks.find((block) => block.id === "wifi-password")?.content ?? "" : "";
+  const wifiPayload = wifiNetwork ? `WIFI:T:WPA;S:${escapeWifiValue(wifiNetwork)};P:${escapeWifiValue(wifiPassword)};;` : "";
+  const wifiQrUrl = wifiPayload ? `https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=14&data=${encodeURIComponent(wifiPayload)}` : "";
+
+  return <><Header script={section.script} title={section.title} icon={Icon} />
+    {section.id === "wifi" && wifiQrUrl && <div className="mb-4 flex items-center gap-4 rounded-[25px] bg-white p-4 shadow-sm">
+      <img src={wifiQrUrl} alt="QR code Wi-Fi" className="h-28 w-28 rounded-xl" />
+      <div><p className="text-xs font-black uppercase tracking-[0.12em] text-black/35">Connexion rapide</p><p className="mt-1 text-sm font-black">Scannez pour rejoindre le Wi-Fi</p><p className="mt-1 text-xs leading-relaxed text-black/50">Le réseau et le mot de passe sont intégrés directement dans ce QR code.</p></div>
+    </div>}
+    <div className="space-y-4">{section.blocks.map((block) => <article key={block.id} className={`overflow-hidden rounded-[25px] ${block.copyValue ? "bg-black text-white" : "bg-[#eee3d3]"}`}>
     {(block.media?.length ?? 0) > 0 && <div className="grid gap-1">{block.media!.map((media) => media.type === "image" ? <img key={media.id} src={media.url} alt={media.name} className="max-h-[420px] w-full object-cover" /> : media.type === "video" ? <video key={media.id} src={media.url} controls playsInline className="max-h-[420px] w-full bg-black" /> : <a key={media.id} href={media.url} target="_blank" className="flex min-h-24 items-center justify-center gap-3 bg-white/80 px-4 text-sm font-black text-black"><FileText size={22} />Ouvrir le PDF : {media.name}</a>)}</div>}
     <div className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-black">{block.title}</h3>{block.badge && <span className="rounded-full bg-white px-3 py-2 text-[10px] font-black text-black">{block.badge}</span>}</div><p className={`mt-3 whitespace-pre-line text-sm leading-relaxed ${block.copyValue ? "text-white/70" : "text-black/65"}`}>{block.content}</p></div>{block.copyValue && <button type="button" onClick={() => onCopy(block.id, block.copyValue!)} className="grid h-11 w-11 flex-none place-items-center rounded-full bg-[#eee3d3] text-black">{copied === block.id ? <Check size={19} /> : <Copy size={19} />}</button>}</div>{(block.mapQuery || block.phone) && <div className="mt-4 flex flex-wrap gap-2">{block.mapQuery && <button type="button" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(block.mapQuery!)}`, "_blank")} className="rounded-full bg-white px-4 py-2 text-xs font-black"><MapPin size={14} className="mr-1 inline" />Itinéraire</button>}{block.phone && <a href={`tel:${block.phone}`} className="rounded-full bg-white px-4 py-2 text-xs font-black"><Phone size={14} className="mr-1 inline" />Appeler</a>}</div>}</div>
   </article>)}</div></>;
