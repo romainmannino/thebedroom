@@ -1,11 +1,15 @@
 "use client";
 
-import { ArrowLeft, Download, Home, MapPin, Phone, Printer, QrCode } from "lucide-react";
+import { ArrowLeft, Download, Home, MapPin, Phone, QrCode } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_GUIDE_CONTENT, mergeGuideContent, type GuideContentBlock, type GuideContentConfiguration, type GuideContentSection } from "@/lib/guide-content-config";
 import { DEFAULT_HOME_CONFIGURATION, type GuideHomeConfiguration, type HomeTileConfiguration } from "@/lib/guide-home-config";
 import { DEFAULT_MINIBAR_CATALOG, type MinibarCatalog } from "@/lib/minibar-config";
+
+function escapeWifiValue(value: string) {
+  return value.replace(/([\\;,:"])/g, "\\$1");
+}
 
 export default function A4GuidePage() {
   const [home, setHome] = useState<GuideHomeConfiguration>(DEFAULT_HOME_CONFIGURATION);
@@ -34,7 +38,12 @@ export default function A4GuidePage() {
     [content, home.tiles],
   );
 
-  const shopUrl = origin ? `${origin}/boutique` : "https://thebedroom.vercel.app/boutique";
+  const minibarVisible = useMemo(
+    () => home.tiles.some((tile) => tile.id === "minibar" && tile.visible),
+    [home.tiles],
+  );
+
+  const shopUrl = origin ? `${origin}/boutique` : "https://www.thebedroom.fr/boutique";
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(shopUrl)}`;
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#e7dfd4] font-bold">Préparation du livret…</main>;
@@ -80,19 +89,18 @@ export default function A4GuidePage() {
       />
     ))}
 
-    <MinibarPage catalog={catalog} shopUrl={shopUrl} qrUrl={qrUrl} pageNumber={sections.length + 2} />
+    {minibarVisible && <MinibarPage catalog={catalog} shopUrl={shopUrl} qrUrl={qrUrl} pageNumber={sections.length + 2} />}
   </main>;
 }
 
 function CoverPage({ home }: { home: GuideHomeConfiguration }) {
   return <section className="a4-page relative mx-auto bg-[#f7f1e8] shadow-2xl">
-    <div className="h-[54%] overflow-hidden bg-black"><img src={home.heroImage} alt="The Bedroom" className="h-full w-full object-cover" /></div>
-    <div className="relative h-[46%] px-14 pb-12 pt-10">
+    <div className="h-[57%] overflow-hidden bg-black"><img src={home.heroImage} alt="The Bedroom" className="h-full w-full object-cover" /></div>
+    <div className="relative h-[43%] px-14 pb-12 pt-10">
       <div className="absolute right-14 top-10 text-[10px] font-black tracking-[0.28em] text-black/35">THE BEDROOM · JONAGE</div>
       <p className="font-serif text-5xl italic leading-none text-black/70">{home.greeting}</p>
       <h1 className="mt-4 max-w-[650px] text-[58px] font-black uppercase leading-[0.86] tracking-[-0.06em] text-black">{home.heroTitle}</h1>
       <p className="mt-6 max-w-[540px] text-[17px] leading-relaxed text-black/55">{home.heroSubtitle}</p>
-      <div className="absolute bottom-12 left-14 flex items-center gap-3 rounded-full bg-black px-6 py-4 text-sm font-black text-white"><Printer size={18}/> LIVRET D’ACCUEIL</div>
       <Footer pageNumber={1} />
     </div>
   </section>;
@@ -101,27 +109,38 @@ function CoverPage({ home }: { home: GuideHomeConfiguration }) {
 function GuidePage({ tile, section, pageNumber }: { tile: HomeTileConfiguration; section: GuideContentSection; pageNumber: number }) {
   const blocks = section.blocks;
   const compact = blocks.length >= 6;
+  const roomy = blocks.length <= 4;
+  const wifiNetwork = section.id === "wifi" ? blocks.find((block) => block.id === "wifi-network")?.copyValue ?? blocks.find((block) => block.id === "wifi-network")?.content ?? "" : "";
+  const wifiPassword = section.id === "wifi" ? blocks.find((block) => block.id === "wifi-password")?.copyValue ?? blocks.find((block) => block.id === "wifi-password")?.content ?? "" : "";
+  const wifiPayload = wifiNetwork ? `WIFI:T:WPA;S:${escapeWifiValue(wifiNetwork)};P:${escapeWifiValue(wifiPassword)};;` : "";
+  const wifiQrUrl = wifiPayload ? `https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=14&data=${encodeURIComponent(wifiPayload)}` : "";
+
   return <section className="a4-page relative mx-auto bg-[#fbf9f5] px-12 pb-12 pt-11 shadow-2xl">
-    <div className="grid grid-cols-[1fr_190px] items-start gap-8 border-b-2 border-black pb-7">
+    <div className={`grid ${roomy ? "grid-cols-[1fr_230px]" : "grid-cols-[1fr_190px]"} items-start gap-8 border-b-2 border-black pb-7`}>
       <div>
         <p className="font-serif text-[31px] italic leading-none text-black/55">{section.script}</p>
         <h2 className="mt-2 text-[43px] font-black uppercase leading-[0.88] tracking-[-0.05em]">{section.title}</h2>
         <p className="mt-4 max-w-[500px] text-[13px] leading-relaxed text-black/50">{section.description}</p>
       </div>
-      {tile.image ? <img src={tile.image} alt="" className="h-[128px] w-[190px] rounded-[22px] object-cover" /> : <div className="grid h-[128px] w-[190px] place-items-center rounded-[22px] bg-[#eee3d3] text-[11px] font-black uppercase tracking-[0.14em] text-black/30">The Bedroom</div>}
+      {tile.image ? <img src={tile.image} alt="" className={`${roomy ? "h-[154px] w-[230px]" : "h-[128px] w-[190px]"} rounded-[22px] object-cover`} /> : <div className={`grid ${roomy ? "h-[154px] w-[230px]" : "h-[128px] w-[190px]"} place-items-center rounded-[22px] bg-[#eee3d3] text-[11px] font-black uppercase tracking-[0.14em] text-black/30`}>The Bedroom</div>}
     </div>
 
+    {section.id === "wifi" && wifiQrUrl && <div className="mt-7 grid grid-cols-[150px_1fr] items-center gap-6 rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-black/5">
+      <img src={wifiQrUrl} alt="QR code Wi-Fi" className="h-[150px] w-[150px] rounded-[14px]" />
+      <div><p className="text-[10px] font-black uppercase tracking-[0.14em] text-black/35">Connexion rapide</p><h3 className="mt-1 text-[20px] font-black">Scannez pour rejoindre le Wi-Fi</h3><p className="mt-2 text-[11px] leading-relaxed text-black/55">Le QR code contient automatiquement le nom du réseau et son mot de passe.</p></div>
+    </div>}
+
     <div className={`mt-7 grid ${blocks.length === 1 ? "grid-cols-1" : "grid-cols-2"} gap-4`}>
-      {blocks.map((block) => <PrintBlock key={block.id} block={block} compact={compact} />)}
+      {blocks.map((block) => <PrintBlock key={block.id} block={block} compact={compact} roomy={roomy && section.id !== "wifi"} />)}
     </div>
     <Footer pageNumber={pageNumber} />
   </section>;
 }
 
-function PrintBlock({ block, compact }: { block: GuideContentBlock; compact: boolean }) {
+function PrintBlock({ block, compact, roomy }: { block: GuideContentBlock; compact: boolean; roomy: boolean }) {
   const image = (block.media ?? []).find((media) => media.type === "image");
-  return <article className={`overflow-hidden rounded-[20px] bg-[#eee3d3] ${compact ? "min-h-[126px]" : "min-h-[150px]"}`}>
-    {image && <img src={image.url} alt={image.name} className={`${compact ? "h-[72px]" : "h-[96px]"} w-full object-cover`} />}
+  return <article className={`overflow-hidden rounded-[20px] bg-[#eee3d3] ${compact ? "min-h-[126px]" : roomy ? "min-h-[188px]" : "min-h-[150px]"}`}>
+    {image && <img src={image.url} alt={image.name} className={`${compact ? "h-[72px]" : roomy ? "h-[142px]" : "h-[108px]"} w-full object-cover`} />}
     <div className={compact ? "p-4" : "p-5"}>
       <div className="flex items-start justify-between gap-3">
         <h3 className={`${compact ? "text-[14px]" : "text-[16px]"} font-black leading-tight`}>{block.title}</h3>
